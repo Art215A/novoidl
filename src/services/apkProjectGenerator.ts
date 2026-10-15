@@ -113,10 +113,47 @@ class MainActivity : AppCompatActivity() {
         webView = findViewById(R.id.webView)
         progressBar = findViewById(R.id.progressBar)
 
+        setupTopControlBar()
         setupWebView()
 
         if (savedInstanceState == null) {
             webView.loadUrl("${config.targetUrl}")
+        }
+    }
+
+    private fun setupTopControlBar() {
+        val topBar = findViewById<View?>(R.id.topControlBar)
+        val btnCollapse = findViewById<View?>(R.id.btnCollapseBar)
+        val btnExpand = findViewById<View?>(R.id.btnExpandBar)
+        val btnWake = findViewById<android.widget.Button?>(R.id.btnWakeToggle)
+        val btnOled = findViewById<android.widget.Button?>(R.id.btnOledMode)
+
+        btnCollapse?.setOnClickListener {
+            topBar?.visibility = View.GONE
+            btnExpand?.visibility = View.VISIBLE
+        }
+
+        btnExpand?.setOnClickListener {
+            topBar?.visibility = View.VISIBLE
+            btnExpand?.visibility = View.GONE
+        }
+
+        var isWakeOn = true
+        btnWake?.setOnClickListener {
+            isWakeOn = !isWakeOn
+            if (isWakeOn) {
+                window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+                btnWake.text = "WakeLock: ON"
+            } else {
+                window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+                btnWake.text = "WakeLock: OFF"
+            }
+        }
+
+        btnOled?.setOnClickListener {
+            // Ativa modo tela preta OLED para economizar 90% de bateria
+            val oledScript = "let o=document.getElementById('p-oled');if(o){o.remove();}else{o=document.createElement('div');o.id='p-oled';o.style='position:fixed;inset:0;background:#000;z-index:999999;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#666;font-family:sans-serif;font-size:13px;';o.innerHTML='<p>MODO OLED ATIVO</p><p style=\"font-size:11px;\">Toque duas vezes para desbloquear</p>';o.ondblclick=()=>o.remove();document.body.appendChild(o);}"
+            webView.evaluateJavascript(oledScript, null)
         }
     }
 
@@ -426,18 +463,92 @@ export function generateLayoutXml(): string {
         android:id="@+id/progressBar"
         style="?android:attr/progressBarStyleHorizontal"
         android:layout_width="match_parent"
-        android:layout_height="6dp"
+        android:layout_height="4dp"
         android:layout_alignParentTop="true"
         android:indeterminate="false"
         android:max="100"
         android:progress="0"
-        android:visibility="gone" />
+        android:visibility="gone"
+        android:elevation="12dp" />
 
+    <!-- Barra de Controle Fixa no Topo do Jogo (Nunca Some) -->
+    <LinearLayout
+        android:id="@+id/topControlBar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignParentTop="true"
+        android:background="#E60F172A"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingStart="12dp"
+        android:paddingEnd="12dp"
+        android:paddingTop="6dp"
+        android:paddingBottom="6dp"
+        android:elevation="10dp">
+
+        <TextView
+            android:id="@+id/tvAppTitle"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="⚡ PokeIdle Runner (24/7)"
+            android:textColor="#38BDF8"
+            android:textSize="12sp"
+            android:textStyle="bold" />
+
+        <Button
+            android:id="@+id/btnWakeToggle"
+            android:layout_width="wrap_content"
+            android:layout_height="32dp"
+            android:text="WakeLock: ON"
+            android:textSize="10sp"
+            android:background="#0284C7"
+            android:textColor="#FFFFFF"
+            android:paddingStart="8dp"
+            android:paddingEnd="8dp"
+            android:layout_marginEnd="6dp" />
+
+        <Button
+            android:id="@+id/btnOledMode"
+            android:layout_width="wrap_content"
+            android:layout_height="32dp"
+            android:text="🌙 OLED"
+            android:textSize="10sp"
+            android:background="#B45309"
+            android:textColor="#FFFFFF"
+            android:paddingStart="8dp"
+            android:paddingEnd="8dp"
+            android:layout_marginEnd="6dp" />
+
+        <ImageButton
+            android:id="@+id/btnCollapseBar"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:background="#1E293B"
+            android:src="@android:drawable/arrow_up_float"
+            android:contentDescription="Recolher Barra" />
+    </LinearLayout>
+
+    <!-- O Jogo PokeIdle roda na tela toda abaixo da barra fixa -->
     <WebView
         android:id="@+id/webView"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_below="@id/progressBar" />
+        android:layout_below="@id/topControlBar" />
+
+    <!-- Botão Flutuante Redondo para reabrir a barra caso recolhida -->
+    <ImageButton
+        android:id="@+id/btnExpandBar"
+        android:layout_width="36dp"
+        android:layout_height="36dp"
+        android:layout_alignParentTop="true"
+        android:layout_alignParentEnd="true"
+        android:layout_margin="8dp"
+        android:background="#DC2626"
+        android:src="@android:drawable/arrow_down_float"
+        android:visibility="gone"
+        android:elevation="11dp"
+        android:contentDescription="Expandir Barra" />
 
 </RelativeLayout>
 `;

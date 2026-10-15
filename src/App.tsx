@@ -20,6 +20,7 @@ import {
   Info,
 } from 'lucide-react';
 import { Header } from './components/Header';
+import { FloatingControlDock } from './components/FloatingControlDock';
 import { BackgroundControlCenter } from './components/BackgroundControlCenter';
 import { GameLauncher } from './components/GameLauncher';
 import { AndroidProjectSection } from './components/AndroidProjectSection';
@@ -115,8 +116,20 @@ export default function App() {
         onOpenOledMode={() => setIsOledOpen(true)}
       />
 
+      {/* Floating Control Dock (Always Pinned at Top) */}
+      <FloatingControlDock
+        isAntiSleepActive={isAntiSleepActive}
+        isWakeLockActive={isWakeLockActive}
+        isPiPActive={isPiPActive}
+        elapsedSeconds={elapsedSeconds}
+        onToggleAntiSleep={handleToggleAntiSleep}
+        onToggleWakeLock={handleToggleWakeLock}
+        onTogglePiP={handleTogglePiP}
+        onOpenOledMode={() => setIsOledOpen(true)}
+      />
+
       {/* Main Container */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6 pt-16">
         {/* Navigation Tabs */}
         <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none border-b border-slate-800">
           <button
