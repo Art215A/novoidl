@@ -1,0 +1,6 @@
+{
+  "name": "PokeIdle Android Background Runner",
+  "description": "Aplicativo Android e PWA para rodar PokeIdle.io em segundo plano sem pausar ao minimizar, com motor de áudio anti-suspensão, Wake Lock, PiP, modo tela preta OLED e gerador de projeto APK.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
