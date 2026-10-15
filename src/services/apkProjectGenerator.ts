@@ -145,6 +145,9 @@ class MainActivity : AppCompatActivity() {
         cookieManager.setAcceptCookie(true)
         cookieManager.setAcceptThirdPartyCookies(webView, true)
 
+        // Desativa a rolagem elástica e o gesto nativo de 'pull-to-refresh' que recarrega a tela acidentalmente
+        webView.overScrollMode = View.OVER_SCROLL_NEVER
+
         webView.webViewClient = object : WebViewClient() {
             override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
                 super.onPageStarted(view, url, favicon)
@@ -155,15 +158,23 @@ class MainActivity : AppCompatActivity() {
                 super.onPageFinished(view, url)
                 progressBar.visibility = View.GONE
                 
-                // Injeta script anti-pausa: garante que document.hidden seja sempre false
-                val antiPauseScript = """
+                // Injeta scripts: 1) Anti-Pausa em background, 2) Anti-Recarregamento acidental (Pull-to-Refresh)
+                val injectedScript = """
                     (function() {
+                        // Anti-Pausa: não permite que o jogo saiba que foi minimizado
                         Object.defineProperty(document, 'hidden', { get: () => false });
                         Object.defineProperty(document, 'visibilityState', { get: () => 'visible' });
-                        console.log('[PokeIdleRunner] Anti-Pause Hook injetado com sucesso!');
+
+                        // Anti-Recarregar: remove o gesto de deslizar para baixo que atualiza a página
+                        const style = document.createElement('style');
+                        style.id = 'pokeidle-anti-refresh-style';
+                        style.innerHTML = 'html, body, div { overscroll-behavior: none !important; overscroll-behavior-y: none !important; }';
+                        document.head.appendChild(style);
+
+                        console.log('[PokeIdleRunner] Anti-Pause e Proteção Anti-Refresh ativados com sucesso!');
                     })();
                 """.trimIndent()
-                view?.evaluateJavascript(antiPauseScript, null)
+                view?.evaluateJavascript(injectedScript, null)
             }
 
             override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {

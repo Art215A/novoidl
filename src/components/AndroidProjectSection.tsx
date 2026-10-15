@@ -12,6 +12,7 @@ import {
   Cpu,
   Layers,
   Settings2,
+  RotateCcw,
 } from 'lucide-react';
 import {
   AndroidProjectConfig,
@@ -100,8 +101,8 @@ export const AndroidProjectSection: React.FC = () => {
         </button>
       </div>
 
-      {/* Highlights: Why this native APK never freezes */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 my-6">
+      {/* Highlights: Why this native APK never freezes & never reloads */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 my-6">
         <div className="p-4 rounded-2xl bg-slate-950/80 border border-slate-800 flex items-start gap-3">
           <div className="p-2 rounded-xl bg-red-500/10 text-red-400 shrink-0">
             <Cpu className="w-5 h-5" />
@@ -140,6 +141,20 @@ export const AndroidProjectSection: React.FC = () => {
             </h4>
             <p className="text-xs text-slate-400 mt-1">
               Injeta no WebView <code className="text-sky-300">document.hidden = false</code> para que o loop do PokeIdle ache que a janela está sempre em foco.
+            </p>
+          </div>
+        </div>
+
+        <div className="p-4 rounded-2xl bg-slate-950/80 border border-slate-800 flex items-start gap-3">
+          <div className="p-2 rounded-xl bg-amber-500/10 text-amber-400 shrink-0">
+            <RotateCcw className="w-5 h-5" />
+          </div>
+          <div>
+            <h4 className="text-xs font-bold text-white uppercase tracking-wider">
+              Anti Pull-to-Refresh
+            </h4>
+            <p className="text-xs text-slate-400 mt-1">
+              Bloqueia o gesto de deslizar para baixo que atualiza a página. Você rola para ver seus Pokémons e itens sem reiniciar o jogo!
             </p>
           </div>
         </div>
