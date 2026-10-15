@@ -130,8 +130,20 @@ export const BackgroundControlCenter: React.FC<BackgroundControlCenterProps> = (
             {isAntiSleepActive && <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />}
           </h3>
           <p className="text-xs text-slate-400 mt-1">
-            Loop inaudível com MediaSession. O Android trata a aba como player de música ativo e não congela o JS.
+            Loop inaudível com MediaSession. O Android trata como player de música ativo para não congelar o processamento.
           </p>
+          <div className="mt-3 pt-2.5 border-t border-slate-800/80 flex items-center justify-between">
+            <button
+              onClick={() => audioKeepAlive.playTestSound()}
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[11px] font-semibold transition cursor-pointer"
+            >
+              <Volume2 className="w-3.5 h-3.5" />
+              <span>Testar Som (Bip)</span>
+            </button>
+            <span className="text-[10px] text-slate-500">
+              {isAntiSleepActive ? '✓ Ativo no Android' : 'Desligado'}
+            </span>
+          </div>
         </div>
 
         {/* 2. WakeLock */}
