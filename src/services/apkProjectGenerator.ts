@@ -26,6 +26,8 @@ export function generateAndroidManifest(config: AndroidProjectConfig): string {
     <!-- Permissões essenciais para rodar em segundo plano -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+    <uses-permission android:name="android.permission.CHANGE_WIFI_MULTICAST_STATE" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
@@ -75,6 +77,8 @@ import android.graphics.Bitmap
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.os.PowerManager
 import android.provider.Settings
 import android.view.View
@@ -148,6 +152,21 @@ class MainActivity : AppCompatActivity() {
         // Desativa a rolagem elástica e o gesto nativo de 'pull-to-refresh' que recarrega a tela acidentalmente
         webView.overScrollMode = View.OVER_SCROLL_NEVER
 
+        // Inicia pulso de batimento nativo do Android a cada 15 segundos (impede queda do servidor de 60s)
+        val heartbeatHandler = Handler(Looper.getMainLooper())
+        val heartbeatRunnable = object : Runnable {
+            override fun run() {
+                try {
+                    val pulse = "if (window.__pokeidle_pulse) { window.__pokeidle_pulse(); }"
+                    webView.evaluateJavascript(pulse, null)
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+                heartbeatHandler.postDelayed(this, 15000)
+            }
+        }
+        heartbeatHandler.postDelayed(heartbeatRunnable, 15000)
+
         webView.webViewClient = object : WebViewClient() {
             override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
                 super.onPageStarted(view, url, favicon)
@@ -158,20 +177,51 @@ class MainActivity : AppCompatActivity() {
                 super.onPageFinished(view, url)
                 progressBar.visibility = View.GONE
                 
-                // Injeta scripts: 1) Anti-Pausa em background, 2) Anti-Recarregamento acidental (Pull-to-Refresh)
+                // Injeta scripts: 1) Anti-Pausa, 2) Anti-Recarregar, 3) Anti-AFK Heartbeat WebSocket
                 val injectedScript = """
                     (function() {
-                        // Anti-Pausa: não permite que o jogo saiba que foi minimizado
-                        Object.defineProperty(document, 'hidden', { get: () => false });
-                        Object.defineProperty(document, 'visibilityState', { get: () => 'visible' });
+                        // 1. Mascara a visibilidade da aba para o jogo achar que a tela está sempre em foco
+                        try {
+                            Object.defineProperty(document, 'hidden', { get: () => false, configurable: true });
+                            Object.defineProperty(document, 'visibilityState', { get: () => 'visible', configurable: true });
+                            document.hasFocus = () => true;
+                        } catch(e) {}
 
-                        // Anti-Recarregar: remove o gesto de deslizar para baixo que atualiza a página
-                        const style = document.createElement('style');
-                        style.id = 'pokeidle-anti-refresh-style';
-                        style.innerHTML = 'html, body, div { overscroll-behavior: none !important; overscroll-behavior-y: none !important; }';
-                        document.head.appendChild(style);
+                        // 2. Intercepta a criação do WebSocket do PokeIdle para ter o canal de keepalive
+                        if (!window.__pokeidle_ws_hooked) {
+                            window.__pokeidle_ws_hooked = true;
+                            const OrigWS = window.WebSocket;
+                            window.WebSocket = function(...args) {
+                                const ws = new OrigWS(...args);
+                                window.__pokeidle_ws = ws;
+                                return ws;
+                            };
+                            window.WebSocket.prototype = OrigWS.prototype;
+                        }
 
-                        console.log('[PokeIdleRunner] Anti-Pause e Proteção Anti-Refresh ativados com sucesso!');
+                        // 3. Função de pulso Anti-Inatividade: envia ping a cada 15s para não cair no limite de 60s
+                        window.__pokeidle_pulse = function() {
+                            try {
+                                if (window.__pokeidle_ws && window.__pokeidle_ws.readyState === 1) {
+                                    window.__pokeidle_ws.send(JSON.stringify({ t: 'ping' }));
+                                }
+                                document.dispatchEvent(new Event('mousemove', { bubbles: true }));
+                                window.dispatchEvent(new Event('focus', { bubbles: true }));
+                            } catch(e) {}
+                        };
+
+                        // 4. Desativa o gesto nativo de 'pull-to-refresh'
+                        if (!document.getElementById('pokeidle-anti-refresh-style')) {
+                            const style = document.createElement('style');
+                            style.id = 'pokeidle-anti-refresh-style';
+                            style.innerHTML = 'html, body, div { overscroll-behavior: none !important; overscroll-behavior-y: none !important; }';
+                            document.head.appendChild(style);
+                        }
+
+                        // Inicia o pulso interno também via JS
+                        setInterval(window.__pokeidle_pulse, 15000);
+
+                        console.log('[PokeIdleRunner] Anti-AFK Heartbeat e Anti-Pausa ativos 24/7!');
                     })();
                 """.trimIndent()
                 view?.evaluateJavascript(injectedScript, null)
@@ -262,17 +312,19 @@ export function generateForegroundService(config: AndroidProjectConfig): string 
 import android.app.*
 import android.content.Context
 import android.content.Intent
+import android.net.wifi.WifiManager
 import android.os.Build
 import android.os.IBinder
 import android.os.PowerManager
 import androidx.core.app.NotificationCompat
 
 /**
- * Foreground Service que previne o Android de suspender o app e matar a CPU
+ * Foreground Service que previne o Android de suspender o app e matar a CPU ou o Wi-Fi
  */
 class PokeIdleBackgroundService : Service() {
 
     private var wakeLock: PowerManager.WakeLock? = null
+    private var wifiLock: WifiManager.WifiLock? = null
     private val CHANNEL_ID = "PokeIdleBackgroundChannel"
     private val NOTIFICATION_ID = 1001
 
@@ -288,6 +340,20 @@ class PokeIdleBackgroundService : Service() {
         ).apply {
             setReferenceCounted(false)
             acquire()
+        }
+
+        // Adquire WifiLock de alta performance para o WebSocket não cair em standby
+        try {
+            val wifiManager = applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
+            wifiLock = wifiManager.createWifiLock(
+                WifiManager.WIFI_MODE_FULL_HIGH_PERF,
+                "PokeIdleRunner::WifiLock"
+            ).apply {
+                setReferenceCounted(false)
+                acquire()
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
         }
 
         val notification = createNotification()
@@ -337,6 +403,9 @@ class PokeIdleBackgroundService : Service() {
     override fun onDestroy() {
         super.onDestroy()
         wakeLock?.let {
+            if (it.isHeld) it.release()
+        }
+        wifiLock?.let {
             if (it.isHeld) it.release()
         }
     }

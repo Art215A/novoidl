@@ -230,14 +230,45 @@ export const BackgroundControlCenter: React.FC<BackgroundControlCenterProps> = (
         </div>
       </div>
 
+      {/* Anti-AFK Server Heartbeat Explainer Banner */}
+      <div className="mt-6 p-4 rounded-2xl bg-amber-950/20 border border-amber-500/30 space-y-3">
+        <div className="flex items-center gap-2 text-amber-400 font-bold text-xs sm:text-sm">
+          <AlertTriangle className="w-4 h-4 shrink-0 text-amber-400" />
+          <span>Por que o jogo parou de farmar depois de alguns minutos minimizado?</span>
+        </div>
+        <p className="text-xs text-slate-300 leading-relaxed">
+          O servidor oficial do Pokéidle possui um <strong>vigia de inatividade (Heartbeat)</strong>: se o seu celular ficar <strong>~60 segundos</strong> sem enviar dados de batalha ou ping pela rede, o servidor assume que você desconectou e <strong>pausa o farm</strong>.
+        </p>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1 text-xs">
+          <div className="p-3 rounded-xl bg-slate-900/80 border border-slate-800 space-y-1">
+            <span className="font-bold text-emerald-400 block">Opção 1: Modo Tela Apagada (OLED)</span>
+            <p className="text-slate-400">
+              Toque em <strong>"Ativar Modo OLED"</strong> no topo. A tela fica preta com gasto quase zero de bateria, mas o jogo roda em 1º plano a 60 FPS sem parar de farmar!
+            </p>
+          </div>
+          <div className="p-3 rounded-xl bg-slate-900/80 border border-slate-800 space-y-1">
+            <span className="font-bold text-purple-400 block">Opção 2: Janela Suspensa / Dividida</span>
+            <p className="text-slate-400">
+              No Android, deixe o jogo em <strong>Janela Flutuante</strong> ou <strong>Tela Dividida</strong>. Como continua visível na tela, o Android nunca corta a rede.
+            </p>
+          </div>
+          <div className="p-3 rounded-xl bg-slate-900/80 border border-slate-800 space-y-1">
+            <span className="font-bold text-sky-400 block">Opção 3: Nosso APK com Pulso de 15s</span>
+            <p className="text-slate-400">
+              O projeto do APK possui um <strong>temporizador nativo de 15 segundos</strong> que envia o pulso de rede e simula presença para o servidor não desconectar.
+            </p>
+          </div>
+        </div>
+      </div>
+
       {/* Why Android closes background games explainer */}
-      <div className="mt-6 pt-5 border-t border-slate-800/80">
+      <div className="mt-4 pt-4 border-t border-slate-800/80">
         <button
           onClick={() => setShowHowItWorks(!showHowItWorks)}
           className="flex items-center gap-2 text-xs font-semibold text-slate-400 hover:text-white transition cursor-pointer"
         >
           <Info className="w-4 h-4 text-red-400" />
-          <span>Por que o Android pausa jogos minimizados e como nós resolvemos isso?</span>
+          <span>Detalhes técnicos: Doze Mode e cortes de conexão do Android</span>
           <span className="text-[10px] text-slate-400 bg-slate-800 px-2 py-0.5 rounded">
             {showHowItWorks ? 'Ocultar' : 'Entender'}
           </span>
